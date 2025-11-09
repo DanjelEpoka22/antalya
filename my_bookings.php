@@ -7,13 +7,15 @@ if(!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Merr rezervimet e turneve të përdoruesit
+// Merr rezervimet e turneve të përdoruesit me të dhënat e reja
 $user_id = $_SESSION['user_id'];
-$tours_sql = "SELECT b.*, t.title, t.location, t.duration, t.image 
-        FROM bookings b 
-        JOIN tours t ON b.tour_id = t.id 
-        WHERE b.user_id = '$user_id' 
-        ORDER BY b.created_at DESC";
+$tours_sql = "SELECT b.*, t.title, t.location, t.duration, t.image, 
+                     t.price_adult, t.price_child, t.price_infant,
+                     t.included, t.excluded
+              FROM bookings b 
+              JOIN tours t ON b.tour_id = t.id 
+              WHERE b.user_id = '$user_id' 
+              ORDER BY b.created_at DESC";
 $tours_result = mysqli_query($conn, $tours_sql);
 
 // Merr rezervimet e transportit të përdoruesit
@@ -90,6 +92,44 @@ $transport_result = mysqli_query($conn, $transport_sql);
         right: 15px;
         font-size: 0.7rem;
     }
+    
+    .guest-breakdown {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px;
+        margin: 10px 0;
+    }
+    
+    .guest-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    .guest-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .services-badge {
+        font-size: 0.7rem;
+        margin-right: 5px;
+        margin-bottom: 5px;
+    }
+    
+    .price-details {
+        background: #e8f5e8;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 10px;
+    }
+    
+    .price-line {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        margin-bottom: 3px;
+    }
 </style>
 
 <div class="container mt-5 pt-4">
@@ -136,6 +176,19 @@ $transport_result = mysqli_query($conn, $transport_sql);
                         'confirmed' => 'fas fa-check-circle',
                         'cancelled' => 'fas fa-times-circle'
                     ][$booking['status']] ?? 'fas fa-info-circle';
+                    
+                    // Përpunimi i shërbimeve
+                    $included_services = !empty($booking['included']) ? explode(',', $booking['included']) : [];
+                    $excluded_services = !empty($booking['excluded']) ? explode(',', $booking['excluded']) : [];
+                    
+                    // Llogaritja e çmimeve individuale
+                    $adults_count = $booking['adults'] ?? 1;
+                    $children_count = $booking['children'] ?? 0;
+                    $infants_count = $booking['infants'] ?? 0;
+                    
+                    $price_adult = $booking['price_adult'] ?? $booking['total_price'] / $booking['guests'];
+                    $price_child = $booking['price_child'] ?? ($booking['price_adult'] ?? $booking['total_price'] / $booking['guests']) * 0.7;
+                    $price_infant = $booking['price_infant'] ?? 0;
                 ?>
                 <div class="col-lg-6 col-xl-4 mb-4">
                     <div class="card booking-card tour-booking h-100">
@@ -155,10 +208,30 @@ $transport_result = mysqli_query($conn, $transport_sql);
                             </div>
                             
                             <!-- Location -->
-                            <p class="text-muted mb-4">
+                            <p class="text-muted mb-3">
                                 <i class="fas fa-map-marker-alt text-primary me-2"></i>
                                 <?php echo htmlspecialchars($booking['location']); ?>
                             </p>
+
+                            <!-- Guest Breakdown -->
+                            <div class="guest-breakdown">
+                                <div class="guest-item">
+                                    <span>Adults (12+):</span>
+                                    <strong><?php echo $adults_count; ?> x $<?php echo number_format($price_adult, 2); ?></strong>
+                                </div>
+                                <?php if($children_count > 0): ?>
+                                <div class="guest-item">
+                                    <span>Children (4-11):</span>
+                                    <strong><?php echo $children_count; ?> x $<?php echo number_format($price_child, 2); ?></strong>
+                                </div>
+                                <?php endif; ?>
+                                <?php if($infants_count > 0): ?>
+                                <div class="guest-item">
+                                    <span>Infants (0-3):</span>
+                                    <strong><?php echo $infants_count; ?> x $<?php echo number_format($price_infant, 2); ?></strong>
+                                </div>
+                                <?php endif; ?>
+                            </div>
 
                             <!-- Booking Details -->
                             <div class="booking-details">
@@ -177,7 +250,7 @@ $transport_result = mysqli_query($conn, $transport_sql);
                                         <i class="fas fa-users"></i>
                                     </div>
                                     <div>
-                                        <small class="text-muted d-block">Guests</small>
+                                        <small class="text-muted d-block">Total Guests</small>
                                         <strong><?php echo $booking['guests']; ?> Person(s)</strong>
                                     </div>
                                 </div>
@@ -198,10 +271,27 @@ $transport_result = mysqli_query($conn, $transport_sql);
                                     </div>
                                     <div>
                                         <small class="text-muted d-block">Total Price</small>
-                                        <strong class="text-success">$<?php echo $booking['total_price']; ?></strong>
+                                        <strong class="text-success">$<?php echo number_format($booking['total_price'], 2); ?></strong>
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Services Included -->
+                            <?php if(!empty($included_services) && count($included_services) > 0): ?>
+                            <div class="mt-3">
+                                <small class="text-muted d-block mb-2">Included Services:</small>
+                                <div class="d-flex flex-wrap">
+                                    <?php foreach(array_slice($included_services, 0, 3) as $service): ?>
+                                        <span class="badge bg-success services-badge">
+                                            <i class="fas fa-check me-1"></i><?php echo htmlspecialchars(trim($service)); ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                    <?php if(count($included_services) > 3): ?>
+                                        <span class="badge bg-secondary services-badge">+<?php echo count($included_services) - 3; ?> more</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         
                         <!-- Footer -->

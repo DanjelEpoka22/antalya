@@ -301,7 +301,7 @@
                 <ul class="navbar-nav">
                     <?php if(isset($_SESSION['user_id'])): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="booking.php">
+                            <a class="nav-link" href="my_bookings.php">
                                 <i class="fas fa-calendar-check me-1"></i>My Bookings
                             </a>
                         </li>

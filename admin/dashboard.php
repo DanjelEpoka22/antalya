@@ -15,39 +15,56 @@ if(!isset($_SESSION['user_id']) || $_SESSION['username'] != 'admin') {
 if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_tour'])) {
     $title = mysqli_real_escape_string($conn, $_POST['title']);
     $description = mysqli_real_escape_string($conn, $_POST['description']);
-    $price = mysqli_real_escape_string($conn, $_POST['price']);
+    $price_adult = mysqli_real_escape_string($conn, $_POST['price_adult']);
+    $price_child = mysqli_real_escape_string($conn, $_POST['price_child']);
+    $price_infant = mysqli_real_escape_string($conn, $_POST['price_infant']);
     $duration = mysqli_real_escape_string($conn, $_POST['duration']);
     $location = mysqli_real_escape_string($conn, $_POST['location']);
+    $included = mysqli_real_escape_string($conn, $_POST['included']);
+    $excluded = mysqli_real_escape_string($conn, $_POST['excluded']);
     
-    // Përpunimi i fotove
-    $image = null;
-    if(isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
-        $target_dir = "../assets/images/tours/";
-        // Krijo folderin nëse nuk ekziston
-        if(!is_dir($target_dir)) {
-            mkdir($target_dir, 0777, true);
-        }
-        $image = basename($_FILES["image"]["name"]);
-        $target_file = $target_dir . $image;
-        
-        // Kontrollo nëse file ekziston
-        if(file_exists($target_file)) {
-            $image = time() . "_" . $image; // Shto timestamp për emër unik
-            $target_file = $target_dir . $image;
-        }
-        
-        if(move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-            // Success
-        } else {
-            $error = "Error uploading image!";
-        }
-    }
+    // Llogarit çmimin mesatar për kolonën e vjetër price (për backward compatibility)
+    $average_price = ($price_adult + $price_child + $price_infant) / 3;
     
-    $sql = "INSERT INTO tours (title, description, price, duration, location, image) 
-            VALUES ('$title', '$description', '$price', '$duration', '$location', " . ($image ? "'$image'" : "NULL") . ")";
+    // Shto turin në databazë
+    $sql = "INSERT INTO tours (title, description, price, price_adult, price_child, price_infant, duration, location, included, excluded) 
+            VALUES ('$title', '$description', '$average_price', '$price_adult', '$price_child', '$price_infant', '$duration', '$location', '$included', '$excluded')";
     
     if(mysqli_query($conn, $sql)) {
+        $tour_id = mysqli_insert_id($conn);
         $success = "Tour added successfully!";
+        
+        // Përpunimi i fotove të shumta
+        if(isset($_FILES['tour_images']) && !empty($_FILES['tour_images']['name'][0])) {
+            $target_dir = "../assets/images/tours/";
+            
+            // Krijo folderin nëse nuk ekziston
+            if(!is_dir($target_dir)) {
+                mkdir($target_dir, 0777, true);
+            }
+            
+            $uploaded_images = [];
+            
+            // Përpunoni çdo foto
+            foreach($_FILES['tour_images']['tmp_name'] as $key => $tmp_name) {
+                if($_FILES['tour_images']['error'][$key] === 0) {
+                    $image_name = time() . "_" . basename($_FILES["tour_images"]["name"][$key]);
+                    $target_file = $target_dir . $image_name;
+                    
+                    if(move_uploaded_file($tmp_name, $target_file)) {
+                        // Ruaj në tabelën tour_images
+                        $insert_image_sql = "INSERT INTO tour_images (tour_id, image_path, sort_order) 
+                                           VALUES ('$tour_id', '$image_name', '$key')";
+                        mysqli_query($conn, $insert_image_sql);
+                        $uploaded_images[] = $image_name;
+                    }
+                }
+            }
+            
+            if(!empty($uploaded_images)) {
+                $success .= " " . count($uploaded_images) . " images uploaded successfully!";
+            }
+        }
     } else {
         $error = "Error adding tour: " . mysqli_error($conn);
     }
@@ -314,11 +331,27 @@ $transport_zones_total = $transport_zones_count ? mysqli_fetch_assoc($transport_
                                     <textarea class="form-control" id="description" name="description" rows="4" required 
                                               placeholder="Describe the tour experience"></textarea>
                                 </div>
+
+                                <!-- Prices by Age Group -->
+                                <div class="col-md-4">
+                                    <label for="price_adult" class="form-label">Price - Adult ($)</label>
+                                    <input type="number" step="0.01" class="form-control" id="price_adult" name="price_adult" required 
+                                           placeholder="0.00" min="0" value="0">
+                                    <small class="form-text text-muted">Age: 12+ years</small>
+                                </div>
                                 
-                                <div class="col-md-6">
-                                    <label for="price" class="form-label">Price ($)</label>
-                                    <input type="number" step="0.01" class="form-control" id="price" name="price" required 
-                                           placeholder="0.00" min="0">
+                                <div class="col-md-4">
+                                    <label for="price_child" class="form-label">Price - Child ($)</label>
+                                    <input type="number" step="0.01" class="form-control" id="price_child" name="price_child" required 
+                                           placeholder="0.00" min="0" value="0">
+                                    <small class="form-text text-muted">Age: 4-11 years</small>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="price_infant" class="form-label">Price - Infant ($)</label>
+                                    <input type="number" step="0.01" class="form-control" id="price_infant" name="price_infant" required 
+                                           placeholder="0.00" min="0" value="0">
+                                    <small class="form-text text-muted">Age: 0-3 years</small>
                                 </div>
                                 
                                 <div class="col-md-6">
@@ -332,11 +365,30 @@ $transport_zones_total = $transport_zones_count ? mysqli_fetch_assoc($transport_
                                     <input type="text" class="form-control" id="location" name="location" required 
                                            placeholder="Tour location">
                                 </div>
-                                
+
+                                <!-- Included Services -->
                                 <div class="col-12">
-                                    <label for="image" class="form-label">Tour Image</label>
-                                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                                    <div class="form-text">Recommended size: 800x600px. Max 2MB.</div>
+                                    <label for="included" class="form-label">What's Included</label>
+                                    <textarea class="form-control" id="included" name="included" rows="3" 
+                                              placeholder="Enter services included in the tour price (separate with commas)&#10;Example: Hotel pickup, Guide, Lunch, Entrance fees"></textarea>
+                                    <small class="form-text text-muted">Separate each service with a comma</small>
+                                </div>
+
+                                <!-- Excluded Services -->
+                                <div class="col-12">
+                                    <label for="excluded" class="form-label">What's Not Included</label>
+                                    <textarea class="form-control" id="excluded" name="excluded" rows="3" 
+                                              placeholder="Enter services not included in the tour price (separate with commas)&#10;Example: Personal expenses, Tips, Alcoholic drinks"></textarea>
+                                    <small class="form-text text-muted">Separate each service with a comma</small>
+                                </div>
+                                
+                                <!-- Multiple Images Upload -->
+                                <div class="col-12">
+                                    <label for="tour_images" class="form-label">Tour Images</label>
+                                    <input type="file" class="form-control" id="tour_images" name="tour_images[]" 
+                                           accept="image/*" multiple>
+                                    <div class="form-text">You can select multiple images. Recommended size: 800x600px. Max 2MB per image.</div>
+                                    <div id="imagePreview" class="mt-2"></div>
                                 </div>
                                 
                                 <div class="col-12">
@@ -461,16 +513,50 @@ $transport_zones_total = $transport_zones_count ? mysqli_fetch_assoc($transport_
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+        });
 
-            // Form validation
-            document.getElementById('tourForm').addEventListener('submit', function(e) {
-                const price = document.getElementById('price').value;
-                if (price < 0) {
-                    e.preventDefault();
-                    alert('Price cannot be negative!');
-                    return false;
+        // Image preview for multiple files
+        document.getElementById('tour_images')?.addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            
+            const files = e.target.files;
+            
+            for(let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                if(file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'img-thumbnail me-2 mb-2';
+                        img.style.width = '100px';
+                        img.style.height = '80px';
+                        img.style.objectFit = 'cover';
+                        preview.appendChild(img);
+                    }
+                    
+                    reader.readAsDataURL(file);
                 }
-            });
+            }
+        });
+
+        // Form validation for prices
+        document.getElementById('tourForm')?.addEventListener('submit', function(e) {
+            const priceAdult = parseFloat(document.getElementById('price_adult').value);
+            const priceChild = parseFloat(document.getElementById('price_child').value);
+            const priceInfant = parseFloat(document.getElementById('price_infant').value);
+            
+            if (priceAdult < 0 || priceChild < 0 || priceInfant < 0) {
+                e.preventDefault();
+                alert('Prices cannot be negative!');
+                return false;
+            }
+            
+            // Set default price as adult price for backward compatibility
+            document.getElementById('price').value = priceAdult;
         });
     </script>
 </body>

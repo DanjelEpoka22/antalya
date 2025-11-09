@@ -11,10 +11,31 @@ if(!isset($_SESSION['user_id'])) {
 $tour = null;
 if(isset($_GET['tour_id'])) {
     $tour_id = mysqli_real_escape_string($conn, $_GET['tour_id']);
-    $sql = "SELECT * FROM tours WHERE id = '$tour_id'";
+    $sql = "SELECT t.*, 
+                   GROUP_CONCAT(ti.image_path ORDER BY ti.sort_order) as images 
+            FROM tours t 
+            LEFT JOIN tour_images ti ON t.id = ti.tour_id 
+            WHERE t.id = '$tour_id' 
+            GROUP BY t.id";
     $result = mysqli_query($conn, $sql);
     if(mysqli_num_rows($result) > 0) {
         $tour = mysqli_fetch_assoc($result);
+        
+        // Përpunimi i fotove
+        $tour_images = [];
+        if(!empty($tour['images'])) {
+            $tour_images = explode(',', $tour['images']);
+        }
+        if(empty($tour_images) && $tour['image']) {
+            $tour_images = [$tour['image']];
+        }
+        if(empty($tour_images)) {
+            $tour_images = ['default.jpg'];
+        }
+        
+        // Përpunimi i shërbimeve
+        $included_services = !empty($tour['included']) ? explode(',', $tour['included']) : [];
+        $excluded_services = !empty($tour['excluded']) ? explode(',', $tour['excluded']) : [];
     }
 }
 
@@ -23,22 +44,31 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_tour'])) {
     $tour_id = mysqli_real_escape_string($conn, $_POST['tour_id']);
     $user_id = $_SESSION['user_id'];
     $booking_date = mysqli_real_escape_string($conn, $_POST['booking_date']);
-    $guests = mysqli_real_escape_string($conn, $_POST['guests']);
+    $adults = mysqli_real_escape_string($conn, $_POST['adults']);
+    $children = mysqli_real_escape_string($conn, $_POST['children']);
+    $infants = mysqli_real_escape_string($conn, $_POST['infants']);
     
-    // Merr çmimin e turit
-    $sql = "SELECT price FROM tours WHERE id = '$tour_id'";
+    // Merr çmimet e turit
+    $sql = "SELECT price_adult, price_child, price_infant FROM tours WHERE id = '$tour_id'";
     $result = mysqli_query($conn, $sql);
     
     if($result && mysqli_num_rows($result) > 0) {
         $tour_data = mysqli_fetch_assoc($result);
-        $tour_price = $tour_data['price'];
         
         // Llogarit çmimin total
-        $total_price = $tour_price * $guests;
+        $price_adult = $tour_data['price_adult'] ?? $tour_data['price'] ?? 0;
+        $price_child = $tour_data['price_child'] ?? ($tour_data['price'] * 0.7) ?? 0;
+        $price_infant = $tour_data['price_infant'] ?? 0;
+        
+        $total_adults = $price_adult * $adults;
+        $total_children = $price_child * $children;
+        $total_infants = $price_infant * $infants;
+        $total_price = $total_adults + $total_children + $total_infants;
+        $total_guests = $adults + $children + $infants;
         
         // Shto rezervimin në databazë
-        $sql = "INSERT INTO bookings (user_id, tour_id, booking_date, guests, total_price) 
-                VALUES ('$user_id', '$tour_id', '$booking_date', '$guests', '$total_price')";
+        $sql = "INSERT INTO bookings (user_id, tour_id, booking_date, guests, adults, children, infants, total_price) 
+                VALUES ('$user_id', '$tour_id', '$booking_date', '$total_guests', '$adults', '$children', '$infants', '$total_price')";
         
         if(mysqli_query($conn, $sql)) {
             // Reset the form by redirecting to avoid resubmission
@@ -137,6 +167,127 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
             font-weight: 700;
             font-size: 1.5rem;
         }
+        
+        .price-breakdown {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .price-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .price-total {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+        }
+        
+        .guest-counter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .counter-btn {
+            width: 35px;
+            height: 35px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .counter-btn:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+        }
+        
+        .counter-input {
+            width: 60px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        
+        .image-slider {
+            position: relative;
+            height: 300px;
+            overflow: hidden;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .slider-container {
+            position: relative;
+            height: 100%;
+        }
+        
+        .slider-images {
+            display: flex;
+            transition: transform 0.5s ease;
+            height: 100%;
+        }
+        
+        .slider-image {
+            min-width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .slider-nav {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .slider-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .slider-dot.active {
+            background: white;
+        }
+        
+        .services-list {
+            font-size: 0.9rem;
+        }
+        
+        .services-list li {
+            margin-bottom: 5px;
+        }
+        
+        .included-services {
+            color: #28a745;
+        }
+        
+        .excluded-services {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -147,7 +298,10 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
                 <i class="fas fa-sun me-2"></i>Rreze Antalya
             </a>
             <div class="navbar-nav ms-auto">
-                <a href="index.php" class="text-white text-decoration-none me-3">
+                <a href="tours.php" class="text-white text-decoration-none me-3">
+                    <i class="fas fa-compass me-1"></i>All Tours
+                </a>
+                <a href="index.php" class="text-white text-decoration-none">
                     <i class="fas fa-home me-1"></i>Home
                 </a>
             </div>
@@ -183,47 +337,100 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
                 <?php endif; ?>
                 
                 <div class="row">
-                    <!-- Tour Selection -->
+                    <!-- Tour Selection & Details -->
                     <div class="col-lg-6 mb-4">
                         <div class="card booking-card h-100">
                             <div class="card-header bg-primary text-white">
                                 <h5 class="card-title mb-0">
-                                    <i class="fas fa-map-marked-alt me-2"></i>Select a Tour
+                                    <i class="fas fa-map-marked-alt me-2"></i>Tour Details
                                 </h5>
                             </div>
                             <div class="card-body">
                                 <?php if($tour): ?>
-                                    <div class="tour-selection">
-                                        <div class="d-flex align-items-start mb-3">
-                                            <?php if($tour['image']): ?>
-                                                <img src="assets/images/tours/<?php echo $tour['image']; ?>" 
-                                                     class="rounded me-3" 
-                                                     style="width: 80px; height: 80px; object-fit: cover;" 
-                                                     alt="<?php echo htmlspecialchars($tour['title']); ?>">
-                                            <?php endif; ?>
-                                            <div>
-                                                <h6 class="fw-bold text-primary"><?php echo htmlspecialchars($tour['title']); ?></h6>
-                                                <p class="text-muted small mb-1"><?php echo htmlspecialchars($tour['description']); ?></p>
-                                                <div class="d-flex flex-wrap gap-3">
-                                                    <small class="text-success">
-                                                        <i class="fas fa-dollar-sign me-1"></i>
-                                                        <strong>$<?php echo $tour['price']; ?></strong> per person
-                                                    </small>
-                                                    <small class="text-info">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        <?php echo htmlspecialchars($tour['duration']); ?>
-                                                    </small>
-                                                    <small class="text-warning">
-                                                        <i class="fas fa-map-marker-alt me-1"></i>
-                                                        <?php echo htmlspecialchars($tour['location']); ?>
-                                                    </small>
+                                    <!-- Image Slider -->
+                                    <?php if(!empty($tour_images)): ?>
+                                    <div class="image-slider mb-4">
+                                        <div class="slider-container" id="slider-tour">
+                                            <div class="slider-images">
+                                                <?php foreach($tour_images as $index => $image): ?>
+                                                    <img src="assets/images/tours/<?php echo trim($image); ?>" 
+                                                         class="slider-image" 
+                                                         alt="<?php echo htmlspecialchars($tour['title']); ?> - Image <?php echo $index + 1; ?>">
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <?php if(count($tour_images) > 1): ?>
+                                                <div class="slider-nav">
+                                                    <?php foreach($tour_images as $index => $image): ?>
+                                                        <div class="slider-dot <?php echo $index === 0 ? 'active' : ''; ?>" 
+                                                             onclick="goToSlide(<?php echo $index; ?>)"></div>
+                                                    <?php endforeach; ?>
                                                 </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                    
+                                    <div class="tour-selection">
+                                        <h4 class="text-primary mb-3"><?php echo htmlspecialchars($tour['title']); ?></h4>
+                                        <p class="text-muted mb-3"><?php echo htmlspecialchars($tour['description']); ?></p>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    <?php echo htmlspecialchars($tour['duration']); ?>
+                                                </small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                                    <?php echo htmlspecialchars($tour['location']); ?>
+                                                </small>
                                             </div>
                                         </div>
-                                        <div class="text-center">
-                                            <a href="booking.php" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-undo me-1"></i>Change Tour
-                                            </a>
+
+                                        <!-- Price Breakdown -->
+                                        <div class="price-breakdown">
+                                            <h6 class="mb-3">Price Breakdown:</h6>
+                                            <div class="price-item">
+                                                <span>Adult (12+ years):</span>
+                                                <strong>$<?php echo $tour['price_adult'] ?? $tour['price']; ?></strong>
+                                            </div>
+                                            <div class="price-item">
+                                                <span>Child (4-11 years):</span>
+                                                <strong>$<?php echo $tour['price_child'] ?? round($tour['price'] * 0.7, 2); ?></strong>
+                                            </div>
+                                            <div class="price-item">
+                                                <span>Infant (0-3 years):</span>
+                                                <strong>$<?php echo $tour['price_infant'] ?? '0'; ?></strong>
+                                            </div>
+                                        </div>
+
+                                        <!-- Services -->
+                                        <div class="services-list">
+                                            <?php if(!empty($included_services)): ?>
+                                                <h6 class="text-success mb-2"><i class="fas fa-check me-1"></i>Included:</h6>
+                                                <ul class="included-services">
+                                                    <?php foreach(array_slice($included_services, 0, 3) as $service): ?>
+                                                        <li><?php echo htmlspecialchars(trim($service)); ?></li>
+                                                    <?php endforeach; ?>
+                                                    <?php if(count($included_services) > 3): ?>
+                                                        <li>... and more</li>
+                                                    <?php endif; ?>
+                                                </ul>
+                                            <?php endif; ?>
+                                            
+                                            <?php if(!empty($excluded_services)): ?>
+                                                <h6 class="text-danger mb-2 mt-3"><i class="fas fa-times me-1"></i>Not Included:</h6>
+                                                <ul class="excluded-services">
+                                                    <?php foreach(array_slice($excluded_services, 0, 3) as $service): ?>
+                                                        <li><?php echo htmlspecialchars(trim($service)); ?></li>
+                                                    <?php endforeach; ?>
+                                                    <?php if(count($excluded_services) > 3): ?>
+                                                        <li>... and more</li>
+                                                    <?php endif; ?>
+                                                </ul>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 <?php else: ?>
@@ -241,7 +448,7 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
                                                 echo '<h6 class="mb-1 fw-bold">' . htmlspecialchars($row['title']) . '</h6>';
                                                 echo '<small class="text-muted">' . htmlspecialchars($row['location']) . ' • ' . htmlspecialchars($row['duration']) . '</small>';
                                                 echo '</div>';
-                                                echo '<span class="badge bg-primary">$' . $row['price'] . '</span>';
+                                                echo '<span class="badge bg-primary">$' . ($row['price_adult'] ?? $row['price']) . '</span>';
                                                 echo '</div>';
                                                 echo '</a>';
                                             }
@@ -268,10 +475,10 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
                                     </h5>
                                 </div>
                                 <div class="card-body">
-                                    <form method="POST">
+                                    <form method="POST" id="bookingForm">
                                         <input type="hidden" name="tour_id" value="<?php echo $tour['id']; ?>">
                                         
-                                        <div class="mb-3">
+                                        <div class="mb-4">
                                             <label for="booking_date" class="form-label fw-bold">
                                                 <i class="fas fa-calendar-day me-2"></i>Preferred Date
                                             </label>
@@ -280,28 +487,93 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
                                             <div class="form-text">Select your preferred tour date</div>
                                         </div>
                                         
-                                        <div class="mb-3">
-                                            <label for="guests" class="form-label fw-bold">
+                                        <!-- Guests Selection -->
+                                        <div class="mb-4">
+                                            <label class="form-label fw-bold">
                                                 <i class="fas fa-users me-2"></i>Number of Guests
                                             </label>
-                                            <select class="form-select" id="guests" name="guests" required>
-                                                <option value="1">1 Guest</option>
-                                                <option value="2">2 Guests</option>
-                                                <option value="3">3 Guests</option>
-                                                <option value="4">4 Guests</option>
-                                                <option value="5">5 Guests</option>
-                                                <option value="6">6+ Guests (Contact us for larger groups)</option>
-                                            </select>
+                                            
+                                            <!-- Adults -->
+                                            <div class="row align-items-center mb-3">
+                                                <div class="col-6">
+                                                    <label class="form-label">Adults (12+ years)</label>
+                                                    <small class="form-text text-muted d-block">$<?php echo $tour['price_adult'] ?? $tour['price']; ?> per person</small>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="guest-counter">
+                                                        <button type="button" class="counter-btn" onclick="updateGuests('adults', -1)">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" class="counter-input" id="adults" name="adults" 
+                                                               value="1" min="1" max="20" readonly>
+                                                        <button type="button" class="counter-btn" onclick="updateGuests('adults', 1)">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Children -->
+                                            <div class="row align-items-center mb-3">
+                                                <div class="col-6">
+                                                    <label class="form-label">Children (4-11 years)</label>
+                                                    <small class="form-text text-muted d-block">$<?php echo $tour['price_child'] ?? round($tour['price'] * 0.7, 2); ?> per person</small>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="guest-counter">
+                                                        <button type="button" class="counter-btn" onclick="updateGuests('children', -1)">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" class="counter-input" id="children" name="children" 
+                                                               value="0" min="0" max="20" readonly>
+                                                        <button type="button" class="counter-btn" onclick="updateGuests('children', 1)">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Infants -->
+                                            <div class="row align-items-center mb-3">
+                                                <div class="col-6">
+                                                    <label class="form-label">Infants (0-3 years)</label>
+                                                    <small class="form-text text-muted d-block">$<?php echo $tour['price_infant'] ?? '0'; ?> per person</small>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="guest-counter">
+                                                        <button type="button" class="counter-btn" onclick="updateGuests('infants', -1)">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" class="counter-input" id="infants" name="infants" 
+                                                               value="0" min="0" max="20" readonly>
+                                                        <button type="button" class="counter-btn" onclick="updateGuests('infants', 1)">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         
+                                        <!-- Price Summary -->
                                         <div class="mb-4 p-3 bg-light rounded">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="fw-bold">Total Price:</span>
-                                                <span class="h5 text-success mb-0">
-                                                    $<span id="total_price"><?php echo $tour['price']; ?></span>
-                                                </span>
+                                            <h6 class="mb-3">Price Summary:</h6>
+                                            <div class="price-item">
+                                                <span>Adults (<span id="adults-count">1</span>x):</span>
+                                                <span>$<span id="adults-total"><?php echo $tour['price_adult'] ?? $tour['price']; ?></span></span>
                                             </div>
-                                            <small class="text-muted">Price includes all taxes and fees</small>
+                                            <div class="price-item">
+                                                <span>Children (<span id="children-count">0</span>x):</span>
+                                                <span>$<span id="children-total">0.00</span></span>
+                                            </div>
+                                            <div class="price-item">
+                                                <span>Infants (<span id="infants-count">0</span>x):</span>
+                                                <span>$<span id="infants-total">0.00</span></span>
+                                            </div>
+                                            <div class="price-item price-total mt-2 pt-2">
+                                                <span class="fw-bold">Total Price:</span>
+                                                <span class="h5 text-success mb-0">$<span id="total-price"><?php echo $tour['price_adult'] ?? $tour['price']; ?></span></span>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">Price includes all taxes and fees</small>
                                         </div>
                                         
                                         <button type="submit" name="book_tour" class="btn btn-success btn-lg w-100">
@@ -335,35 +607,91 @@ if(isset($_GET['success']) && $_GET['success'] == 1 && isset($_GET['tour_id'])) 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Simple JavaScript without conflicts -->
+    <!-- JavaScript for Booking System -->
     <script>
-    // Llogarit çmimin total kur ndryshon numri i të ftuarve
-    document.getElementById('guests')?.addEventListener('change', function() {
-        const guests = parseInt(this.value);
-        const pricePerPerson = <?php echo $tour ? $tour['price'] : 0; ?>;
-        const totalPrice = (guests * pricePerPerson).toFixed(2);
-        document.getElementById('total_price').textContent = totalPrice;
-    });
-
-    // Validimi i datës
-    document.getElementById('booking_date')?.addEventListener('change', function() {
-        const selectedDate = new Date(this.value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Prices from PHP
+        const priceAdult = <?php echo $tour ? ($tour['price_adult'] ?? $tour['price']) : 0; ?>;
+        const priceChild = <?php echo $tour ? ($tour['price_child'] ?? round($tour['price'] * 0.7, 2)) : 0; ?>;
+        const priceInfant = <?php echo $tour ? ($tour['price_infant'] ?? 0) : 0; ?>;
         
-        if (selectedDate < today) {
-            alert('Please select a future date.');
-            this.value = '';
+        // Update guests counter
+        function updateGuests(type, change) {
+            const input = document.getElementById(type);
+            let value = parseInt(input.value) + change;
+            
+            // Set limits
+            if (value < 0) value = 0;
+            if (value > 20) value = 20;
+            
+            input.value = value;
+            calculateTotal();
         }
-    });
-
-    // Initialize with correct price
-    document.addEventListener('DOMContentLoaded', function() {
-        const guests = document.getElementById('guests');
-        if (guests) {
-            guests.dispatchEvent(new Event('change'));
+        
+        // Calculate total price
+        function calculateTotal() {
+            const adults = parseInt(document.getElementById('adults').value);
+            const children = parseInt(document.getElementById('children').value);
+            const infants = parseInt(document.getElementById('infants').value);
+            
+            const adultsTotal = adults * priceAdult;
+            const childrenTotal = children * priceChild;
+            const infantsTotal = infants * priceInfant;
+            const totalPrice = adultsTotal + childrenTotal + infantsTotal;
+            
+            // Update display
+            document.getElementById('adults-count').textContent = adults;
+            document.getElementById('children-count').textContent = children;
+            document.getElementById('infants-count').textContent = infants;
+            
+            document.getElementById('adults-total').textContent = adultsTotal.toFixed(2);
+            document.getElementById('children-total').textContent = childrenTotal.toFixed(2);
+            document.getElementById('infants-total').textContent = infantsTotal.toFixed(2);
+            document.getElementById('total-price').textContent = totalPrice.toFixed(2);
         }
-    });
+        
+        // Image slider functionality
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('#slider-tour .slider-image');
+        const dots = document.querySelectorAll('#slider-tour .slider-dot');
+        
+        function goToSlide(slideIndex) {
+            currentSlide = slideIndex;
+            updateSlider();
+        }
+        
+        function updateSlider() {
+            const slider = document.querySelector('#slider-tour .slider-images');
+            slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+            
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSlide);
+            });
+        }
+        
+        // Auto-advance slides every 5 seconds if multiple images
+        <?php if($tour && count($tour_images) > 1): ?>
+        setInterval(() => {
+            currentSlide = (currentSlide + 1) % slides.length;
+            updateSlider();
+        }, 5000);
+        <?php endif; ?>
+        
+        // Date validation
+        document.getElementById('booking_date')?.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (selectedDate < today) {
+                alert('Please select a future date.');
+                this.value = '';
+            }
+        });
+        
+        // Initialize calculations
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateTotal();
+        });
     </script>
 </body>
 </html>
