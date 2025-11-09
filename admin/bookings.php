@@ -15,7 +15,8 @@ if(isset($_POST['update_status'])) {
     $sql = "UPDATE bookings SET status = '$status' WHERE id = '$booking_id'";
     
     if(mysqli_query($conn, $sql)) {
-        $success = "Booking status updated successfully!";
+        header("Location: bookings.php?success=1&updated_id=$booking_id&status=$status");
+        exit;
     } else {
         $error = "Error updating booking status: " . mysqli_error($conn);
     }
@@ -225,10 +226,13 @@ $cancelled_bookings = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as
         </div>
 
         <!-- Alerts -->
-        <?php if(isset($success)): ?>
+        <?php if(isset($_GET['success']) && $_GET['success'] == 1): ?>
             <div class="alert alert-success alert-dismissible fade show">
                 <i class="fas fa-check-circle me-2"></i>
-                <?php echo $success; ?>
+                Booking status updated successfully!
+                <?php if(isset($_GET['updated_id'])): ?>
+                    <br><small>Updated Booking ID: <?php echo $_GET['updated_id']; ?> to <?php echo $_GET['status'] ?? 'new status'; ?></small>
+                <?php endif; ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -335,11 +339,11 @@ $cancelled_bookings = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as
                                                 <!-- Status Update Form -->
                                                 <div class="col-12">
                                                     <div class="border-top pt-3">
-                                                        <form method="POST" class="d-flex align-items-center gap-3">
+                                                        <form method="POST" action="" class="d-flex align-items-center gap-3">
                                                             <input type="hidden" name="booking_id" value="<?php echo $row['id']; ?>">
                                                             <div class="flex-grow-1">
                                                                 <label class="form-label fw-bold small mb-2">Update Status:</label>
-                                                                <select name="status" class="form-select" onchange="this.form.submit()">
+                                                                <select name="status" class="form-select">
                                                                     <option value="pending" <?php echo $row['status'] == 'pending' ? 'selected' : ''; ?>>⏳ Pending</option>
                                                                     <option value="confirmed" <?php echo $row['status'] == 'confirmed' ? 'selected' : ''; ?>>✅ Confirmed</option>
                                                                     <option value="cancelled" <?php echo $row['status'] == 'cancelled' ? 'selected' : ''; ?>>❌ Cancelled</option>
@@ -377,37 +381,5 @@ $cancelled_bookings = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Simple JavaScript without conflicts -->
-    <script>
-        // Add confirmation for cancellation
-        document.addEventListener('change', function(e) {
-            if (e.target.name === 'status' && e.target.value === 'cancelled') {
-                if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-                    // Reset to previous value
-                    e.target.form.reset();
-                    return false;
-                }
-            }
-            
-            // Show loading state for status updates
-            if (e.target.name === 'status') {
-                const button = e.target.form.querySelector('button[type="submit"]');
-                if (button) {
-                    const originalText = button.innerHTML;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
-                    button.disabled = true;
-                    
-                    // Revert after 3 seconds (safety)
-                    setTimeout(() => {
-                        if (button.disabled) {
-                            button.innerHTML = originalText;
-                            button.disabled = false;
-                        }
-                    }, 3000);
-                }
-            }
-        });
-    </script>
 </body>
 </html>

@@ -18,12 +18,13 @@
     left: 50%;
     transform: translate(-50%, -50%);
     object-fit: cover;
+    pointer-events: none; /* Prevent interaction with video */
 }
 
 .video-background {
     position: relative;
     width: 100%;
-    height: 100vh; /* ose sa të duash */
+    height: 100vh;
     overflow: hidden;
 }
 
@@ -33,6 +34,93 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4); /* overlay i errët */
-    z-index: 0;
+    background: linear-gradient(135deg, 
+        rgba(44, 62, 80, 0.7) 0%, 
+        rgba(231, 76, 60, 0.5) 50%, 
+        rgba(52, 152, 219, 0.6) 100%);
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* === MOBILE OPTIMIZATION === */
+@media (max-width: 768px) {
+    .youtube-video-bg iframe {
+        /* Për mobile, përdor më shumë hapësirë vertikale */
+        width: 140vw; /* Pak më e gjerë për të mbuluar ekranin */
+        height: 100vh;
+        min-width: 100vw;
+        min-height: 100vh;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .video-background {
+        height: 80vh; /* Më pak lartësi në mobile */
+    }
+    
+    .video-overlay {
+        background: linear-gradient(135deg, 
+            rgba(44, 62, 80, 0.8) 0%, 
+            rgba(231, 76, 60, 0.6) 50%, 
+            rgba(52, 152, 219, 0.7) 100%);
+    }
+}
+
+@media (max-width: 480px) {
+    .youtube-video-bg iframe {
+        width: 160vw; /* Edhe më e gjerë për ekrane shumë të vegjël */
+        height: 100vh;
+    }
+    
+    .video-background {
+        height: 70vh; /* Edhe më pak lartësi për telefonat e vegjël */
+    }
+}
+
+/* === TABLET OPTIMIZATION === */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .youtube-video-bg iframe {
+        width: 120vw;
+        height: 67.5vw; /* 16:9 ratio */
+        min-height: 100vh;
+    }
+}
+
+/* === LARGE SCREEN OPTIMIZATION === */
+@media (min-width: 1920px) {
+    .youtube-video-bg iframe {
+        width: 100vw;
+        height: 56.25vw; /* Maintain 16:9 ratio */
+    }
+}
+
+/* === PERFORMANCE OPTIMIZATION === */
+.youtube-video-bg {
+    /* Përmirëso performance në mobile */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000;
+}
+
+/* === FALLBACK FOR SLOW CONNECTIONS === */
+.no-video .youtube-video-bg {
+    display: none;
+}
+
+.no-video .video-background {
+    background: linear-gradient(135deg, rgba(44, 62, 80, 0.8), rgba(231, 76, 60, 0.8)), url('assets/images/hero-bg.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+/* === AUTOPLAY FIXES === */
+.youtube-video-bg iframe {
+    /* Shto parametra për autoplay më të mirë */
+    frameborder: 0;
+    allow: "autoplay; encrypted-media";
+    allowfullscreen: true;
 }
