@@ -68,6 +68,13 @@ $bookings_total = $bookings_count ? mysqli_fetch_assoc($bookings_count)['total']
 
 $users_count = mysqli_query($conn, "SELECT COUNT(*) as total FROM users WHERE username != 'admin'");
 $users_total = $users_count ? mysqli_fetch_assoc($users_count)['total'] : '0';
+
+// Merr statistikat e transportit
+$transport_bookings_count = mysqli_query($conn, "SELECT COUNT(*) as total FROM transport_bookings");
+$transport_bookings_total = $transport_bookings_count ? mysqli_fetch_assoc($transport_bookings_count)['total'] : '0';
+
+$transport_zones_count = mysqli_query($conn, "SELECT COUNT(*) as total FROM transport_zones");
+$transport_zones_total = $transport_zones_count ? mysqli_fetch_assoc($transport_zones_count)['total'] : '0';
 ?>
 
 <!DOCTYPE html>
@@ -117,11 +124,15 @@ $users_total = $users_count ? mysqli_fetch_assoc($users_count)['total'] : '0';
         }
         
         .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px;
             padding: 25px;
             text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
         }
         
         .stats-card i {
@@ -222,7 +233,7 @@ $users_total = $users_count ? mysqli_fetch_assoc($users_count)['total'] : '0';
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h1 class="fw-bold text-dark">Admin Dashboard</h1>
-                        <p class="text-muted">Welcome back, <?php echo $_SESSION['full_name']; ?>! Manage your tours and bookings.</p>
+                        <p class="text-muted">Welcome back, <?php echo $_SESSION['full_name']; ?>! Manage your tours, transfers and bookings.</p>
                     </div>
                     <div class="text-end">
                         <span class="badge bg-primary fs-6">
@@ -235,25 +246,32 @@ $users_total = $users_count ? mysqli_fetch_assoc($users_count)['total'] : '0';
 
         <!-- Stats Cards -->
         <div class="row mb-5">
-            <div class="col-md-4 mb-4">
-                <div class="stats-card">
+            <div class="col-md-3 mb-4">
+                <div class="stats-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                     <i class="fas fa-map-marked-alt"></i>
                     <h3><?php echo $tours_total; ?></h3>
                     <p>Total Tours</p>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-md-3 mb-4">
                 <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                     <i class="fas fa-calendar-check"></i>
                     <h3><?php echo $bookings_total; ?></h3>
-                    <p>Total Bookings</p>
+                    <p>Tour Bookings</p>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-md-3 mb-4">
                 <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
                     <i class="fas fa-users"></i>
                     <h3><?php echo $users_total; ?></h3>
                     <p>Registered Users</p>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="stats-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <i class="fas fa-car"></i>
+                    <h3><?php echo $transport_bookings_total; ?></h3>
+                    <p>Transfer Bookings</p>
                 </div>
             </div>
         </div>
@@ -334,8 +352,51 @@ $users_total = $users_count ? mysqli_fetch_assoc($users_count)['total'] : '0';
             
             <!-- Existing Tours & Stats -->
             <div class="col-lg-6">
-                <!-- Existing Tours -->
+                <!-- Quick Actions -->
                 <div class="dashboard-card mb-4">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-rocket me-2 text-primary"></i>Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <a href="bookings.php" class="btn btn-outline-primary w-100 mb-2">
+                                    <i class="fas fa-calendar-alt me-2"></i>Tour Bookings
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="transport_bookings.php" class="btn btn-outline-success w-100 mb-2">
+                                    <i class="fas fa-car me-2"></i>Transfer Bookings
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="../tours.php" class="btn btn-outline-info w-100 mb-2">
+                                    <i class="fas fa-eye me-2"></i>View Tours
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="../transport.php" class="btn btn-outline-warning w-100 mb-2">
+                                    <i class="fas fa-car me-2"></i>View Transfers
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="../index.php" class="btn btn-outline-secondary w-100 mb-2">
+                                    <i class="fas fa-home me-2"></i>Back to Site
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="logout.php" class="btn btn-outline-danger w-100 mb-2">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Existing Tours -->
+                <div class="dashboard-card">
                     <div class="card-header bg-white border-0">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-list me-2 text-primary"></i>Existing Tours
@@ -384,39 +445,6 @@ $users_total = $users_count ? mysqli_fetch_assoc($users_count)['total'] : '0';
                                 <p class="text-muted">No tours found. Add your first tour to get started!</p>
                             </div>
                         <?php endif; ?>
-                    </div>
-                </div>
-                
-                <!-- Quick Actions -->
-                <div class="dashboard-card">
-                    <div class="card-header bg-white border-0">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-rocket me-2 text-primary"></i>Quick Actions
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <a href="bookings.php" class="btn btn-outline-primary w-100 mb-2">
-                                    <i class="fas fa-calendar-alt me-2"></i>View Bookings
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="../tours.php" class="btn btn-outline-success w-100 mb-2">
-                                    <i class="fas fa-eye me-2"></i>View Tours
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="../index.php" class="btn btn-outline-info w-100 mb-2">
-                                    <i class="fas fa-home me-2"></i>Back to Site
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="logout.php" class="btn btn-outline-danger w-100 mb-2">
-                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                </a>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

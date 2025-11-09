@@ -21,28 +21,32 @@
         <div class="row align-items-center">
             <div class="col-lg-6 hero-content fade-in-up">
                 <h1 class="display-3 fw-bold mb-4">Discover The Magic of Antalya</h1>
-                <p class="lead mb-4">Experience unforgettable tours in one of Turkey's most beautiful coastal cities. From ancient ruins to stunning beaches, we create memories that last a lifetime.</p>
+                <p class="lead mb-4">Experience unforgettable tours and reliable private transfers in one of Turkey's most beautiful coastal cities.</p>
                 <div class="d-flex flex-wrap gap-3">
                     <a href="tours.php" class="btn btn-primary btn-lg">
                         <i class="fas fa-compass me-2"></i>Explore Tours
                     </a>
-                    <a href="#featured-tours" class="btn btn-outline-light btn-lg">
-                        <i class="fas fa-play me-2"></i>Watch Story
+                    <a href="transport.php" class="btn btn-success btn-lg">
+                        <i class="fas fa-car me-2"></i>Book Transfer
                     </a>
                 </div>
                 <div class="mt-5">
                     <div class="row text-center">
-                        <div class="col-4">
+                        <div class="col-3">
                             <h3 class="fw-bold">50+</h3>
                             <p class="mb-0">Amazing Tours</p>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <h3 class="fw-bold">2K+</h3>
                             <p class="mb-0">Happy Travelers</p>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <h3 class="fw-bold">98%</h3>
                             <p class="mb-0">Satisfaction Rate</p>
+                        </div>
+                        <div class="col-3">
+                            <h3 class="fw-bold">24/7</h3>
+                            <p class="mb-0">Transfer Service</p>
                         </div>
                     </div>
                 </div>
@@ -62,26 +66,107 @@
 <section class="py-5 bg-light">
     <div class="container">
         <div class="row g-4">
-            <div class="col-md-4 text-center">
+            <div class="col-md-3 text-center">
                 <div class="feature-icon">
                     <i class="fas fa-shield-alt"></i>
                 </div>
                 <h4>Safe & Secure</h4>
                 <p class="text-muted">Your safety is our top priority with licensed guides and insured activities.</p>
             </div>
-            <div class="col-md-4 text-center">
+            <div class="col-md-3 text-center">
                 <div class="feature-icon">
                     <i class="fas fa-tag"></i>
                 </div>
                 <h4>Best Prices</h4>
                 <p class="text-muted">Competitive pricing without compromising on quality and experience.</p>
             </div>
-            <div class="col-md-4 text-center">
+            <div class="col-md-3 text-center">
                 <div class="feature-icon">
                     <i class="fas fa-headset"></i>
                 </div>
                 <h4>24/7 Support</h4>
                 <p class="text-muted">Round-the-clock customer support to assist you throughout your journey.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-car"></i>
+                </div>
+                <h4>Private Transfers</h4>
+                <p class="text-muted">Comfortable private transfers from airport to all major tourist areas.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Transport Services Section -->
+<section class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2 class="fw-bold mb-4">Private Transfer Services</h2>
+                <p class="lead mb-4">Comfortable and reliable private transfers from Antalya Airport to all major tourist destinations.</p>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-warning me-3 fa-lg"></i>
+                            <span>Mercedes Vito (up to 6 passengers)</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-warning me-3 fa-lg"></i>
+                            <span>Sprinter (larger groups)</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-warning me-3 fa-lg"></i>
+                            <span>24/7 Service</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-warning me-3 fa-lg"></i>
+                            <span>English Speaking Drivers</span>
+                        </div>
+                    </div>
+                </div>
+                <a href="transport.php" class="btn btn-light btn-lg">
+                    <i class="fas fa-car me-2"></i>Book Your Transfer
+                </a>
+            </div>
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-body p-4">
+                        <h5 class="card-title text-dark mb-4">Transfer Prices</h5>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h6 class="text-primary mb-2">Belek</h6>
+                                    <h4 class="fw-bold text-dark">€30</h4>
+                                    <small class="text-muted">Each way</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h6 class="text-primary mb-2">Kemer</h6>
+                                    <h4 class="fw-bold text-dark">€50</h4>
+                                    <small class="text-muted">Each way</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h6 class="text-primary mb-2">Side</h6>
+                                    <h4 class="fw-bold text-dark">€65</h4>
+                                    <small class="text-muted">Each way</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h6 class="text-primary mb-2">Alanya</h6>
+                                    <h4 class="fw-bold text-dark">€90</h4>
+                                    <small class="text-muted">Each way</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -154,6 +239,7 @@
     </div>
 </section>
 
+<!-- Rest of the file remains the same... -->
 <!-- Testimonials Section -->
 <section class="py-5 bg-light">
     <div class="container">
